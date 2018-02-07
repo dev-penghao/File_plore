@@ -5,27 +5,30 @@
 	android:layout_height="fill_parent"
 	android:orientation="vertical">
 
-	<TextView
+	<LinearLayout
 		android:layout_height="wrap_content"
-		android:layout_width="wrap_content"
-		android:id="@+id/progressdialogview_currentText"/>
+		android:layout_width="match_parent"
+		android:orientation="horizontal">
+
+		<TextView
+			android:layout_height="wrap_content"
+			android:layout_width="0dp"
+			android:layout_weight="7"
+			android:id="@+id/copyfiledialogviewTextView1"/>
+
+		<TextView
+			android:layout_height="wrap_content"
+			android:layout_width="0dp"
+			android:layout_weight="3"
+			android:id="@+id/copyfiledialogviewTextView2"/>
+
+	</LinearLayout>
 
 	<ProgressBar
 		style="?android:attr/progressBarStyleHorizontal"
 		android:layout_height="wrap_content"
 		android:layout_width="match_parent"
-		android:id="@+id/progressdialogview_currentProgress"/>
-
-	<TextView
-		android:layout_height="wrap_content"
-		android:layout_width="wrap_content"
-		android:id="@+id/progressdialogview_totalText"/>
-
-	<ProgressBar
-		style="?android:attr/progressBarStyleHorizontal"
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"
-		android:id="@+id/progressdialogview_totalProgress"/>
+		android:id="@+id/copyfiledialogviewProgressBar1"/>
 
 </LinearLayout>
 
