@@ -5,13 +5,11 @@ import android.graphics.Matrix;
 import android.graphics.PointF;  
 import android.graphics.drawable.Drawable;  
 import android.util.AttributeSet;  
-import android.util.FloatMath;  
-import android.view.MotionEvent;  
+import android.view.MotionEvent;
 import android.view.View;  
 import android.view.ViewTreeObserver;  
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;  
-import android.widget.ImageView;
-import android.graphics.*;  
+import android.graphics.*;
 
 /** 
  * 缩放ImageView 
@@ -19,7 +17,7 @@ import android.graphics.*;
  * @author xiejinxiong 
  *  
  */  
-public class ZoomImageView extends ImageView {  
+public class ZoomImageView extends android.support.v7.widget.AppCompatImageView {
 
     /** ImageView高度 */  
     private int imgHeight;  

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="常规设置">
+
+        <SwitchPreference
+            android:key="check"
+            android:title="显示隐藏文件"
+            android:summary="显示以“.”开头的文件"/>
+
+        <ListPreference
+            android:key="list"
+            android:title="启用回收站"
+            android:entries="@array/use_recycle"/>
+
+        <SwitchPreference
+            android:key="switch_tequan"
+            android:title="启用root"
+            android:summary="启用root后，用户可以更改设备上的任意文件，请谨慎使用！"/>
+
+    </PreferenceCategory>
+
+    <Preference
+        android:title="关于"/>
+
+</PreferenceScreen>

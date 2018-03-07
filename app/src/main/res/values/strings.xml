@@ -3,6 +3,12 @@
     <string name="error">错误</string>
     <string name="title_activity_main2">Main2Activity</string>
 
+    <string-array name="use_recycle">
+        <item>启用</item>
+        <item>禁用</item>
+        <item>询问</item>
+    </string-array>
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 

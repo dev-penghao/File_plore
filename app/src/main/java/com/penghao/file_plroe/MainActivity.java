@@ -1,93 +1,72 @@
-/**
- *
- *----------Dragon be here!----------/
- *  　　┏┓　　　┏┓
- * 　　┏┛┻━━━┛┻┓
- * 　　┃　　　　　　　┃
- * 　　┃　　　━　　　┃
- * 　　┃　┳┛　┗┳　┃
- * 　　┃　　　　　　　┃
- * 　　┃　　　∪　　　┃
- * 　　┃　　　　　　　┃
- * 　　┗━┓　　　┏━┛
- * 　　　　┃　　　┃神兽保佑
- * 　　　　┃　　　┃代码无BUG！
- * 　　　　┃　　　┗━━━┓
- * 　　　　┃　　　　　　　┣┓
- * 　　　　┃　　　　　　　┏┛
- * 　　　　┗┓┓┏━┳┓┏┛
- * 　　　　　┃┫┫　┃┫┫
- * 　　　　　┗┻┛　┗┻┛
- * ━━━━━━神兽出没━━━━━━by:coder-pig
- */
-
 package com.penghao.file_plroe;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.ActionMode;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.penghao.activitys.AboutActivity;
 import com.penghao.activitys.SettingsActivity;
+import com.penghao.adapters.MyListAdapter;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.Collator;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity
-{
-    ListView listview;
-    List<File> dirList=new ArrayList<>();
-    List<File> fileList=new ArrayList<>();
-    List<File> list=new ArrayList<>();//list用于dir与file之并
-    List<File> shearPlate=new ArrayList<>();//剪切板;修饰为static，要为其他类共享剪切板
-    List<Integer> lvPosition=new ArrayList<>();//listview的第一个可见项的位置
+public class MainActivity extends AppCompatActivity {
+
+    public static ListView listview;
+    public List<File> dirList=new ArrayList<>();
+    public List<File> fileList=new ArrayList<>();
+    public static List<File> list=new ArrayList<>();//list用于dir与file之并
+    public List<File> shearPlate=new ArrayList<>();//剪切板;修饰为static，要为其他类共享剪切板
+    public List<Integer> lvPosition=new ArrayList<>();//listview的第一个可见项的位置
+    public MyListAdapter adapter;
+    public SwipeRefreshLayout swipeRefresh;
+    public Toolbar toolbar;
+    public DrawerLayout drawerLayout;
+    public ActionBarDrawerToggle drawerToggle;
     int lvTop=0;//listview第一个可见项距顶部的距离
-    ListAdapter adapter;
-    SwipeRefreshLayout swipeRefresh;
-    Toolbar toolbar;
-    DrawerLayout drawerLayout;
-    ActionBarDrawerToggle drawerToggle;
     static final String HOMEPATH="/sdcard";
     static String nowPath=HOMEPATH;//当前所处的路径
+    static boolean isZipMode=false;//是否以打开压缩文件的模式工作
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -95,14 +74,15 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.main);
 
         init();
-
     }
 
     public void init(){
+        //绑定控件
         listview=findViewById(R.id.mainListView);
         swipeRefresh=findViewById(R.id.main_srl);
         toolbar=findViewById(R.id.main_toolbar);
         drawerLayout=findViewById(R.id.dl_left);
+        //设置状态栏
         toolbar.setTitleTextColor(Color.parseColor("#ffffff"));
         toolbar.setTitle("文件管理");
         setSupportActionBar(toolbar);
@@ -126,6 +106,10 @@ public class MainActivity extends AppCompatActivity
                         Intent intent=new Intent(MainActivity.this, SettingsActivity.class);
                         startActivity(intent);
                         break;
+                    case R.id.main_about:
+                        Intent intent1=new Intent(MainActivity.this, AboutActivity.class);
+                        startActivity(intent1);
+                        break;
                     default:
                         break;
                 }
@@ -145,7 +129,18 @@ public class MainActivity extends AppCompatActivity
         };
         drawerToggle.syncState();
         drawerLayout.setDrawerListener(drawerToggle);
-        listFile(new File(HOMEPATH),false);
+        //判断是否以浏览zip模式工作！
+        if (getIntent().getType().equals("application/zip"))
+            isZipMode=true;
+        //处理权限
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)== PackageManager.PERMISSION_DENIED){
+            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
+        }else {
+            //如果有权限的话就可以列出文件了
+            if (!isZipMode)//不是zip模式才可以列出文件
+                listFile(new File(HOMEPATH),false);
+        }
+        //listview相关
         listview.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         listview.setMultiChoiceModeListener(choiceMode);
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener(){
@@ -205,6 +200,36 @@ public class MainActivity extends AppCompatActivity
                 swipeRefresh.setRefreshing(false);
             }
         });
+    }
+
+    //Create by Penghao on 2018-2-17
+    //权限申请后具体的处理
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode==1){//第一次申请后处理的逻辑
+            if (grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                listFile(new File(HOMEPATH),false);//设置权限处理主要是为了防止没有权限时读不到文件，listFile方法会因为空指针而崩溃，为此，特地在listFile中加入了判空机制
+            }else {//如果第一次拒绝，那么弹出对话框说明权限的重要性，然后再申请一次
+                AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
+                dialog.setTitle("权限申请");
+                dialog.setMessage("文件管理需要读写SD卡权限，这是文件管理工作的基本，请您务必同意！");
+                dialog.setPositiveButton("知道了", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        //再次申请
+                        ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},2);
+                    }
+                });
+                dialog.show();
+            }
+        }else if (requestCode==2){//这是2次申请后处理的逻辑
+            if (grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                listFile(new File(HOMEPATH),false);
+            }else {//如果第二次申请仍然拒绝的话，那就结束程序
+                finish();
+            }
+        }
     }
 
     AbsListView.MultiChoiceModeListener choiceMode = new AbsListView.MultiChoiceModeListener(){
@@ -324,7 +349,7 @@ public class MainActivity extends AppCompatActivity
                 list.add(fileList.get(i));
             }
             //让listview显示
-            adapter=new ListAdapter();
+            adapter=new MyListAdapter(MainActivity.this);
             listview.setAdapter(adapter);
             if (isBack){
                 listview.setSelection(lvPosition.get(lvPosition.size()-1));
@@ -408,25 +433,6 @@ public class MainActivity extends AppCompatActivity
         return super.onCreateOptionsMenu(menu);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        switch(item.getItemId()){
-            case R.id.main_createNewFile:
-            createFileDialog();
-            break;
-            case R.id.main_paste:
-            paste();
-            break;
-            case R.id.main_finish:
-            finish();
-            break;
-            default:
-            break;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     public void paste(){
         if(shearPlate.isEmpty()){
             showToast(this,"剪切板为空！");
@@ -459,7 +465,7 @@ public class MainActivity extends AppCompatActivity
         dialog.setPositiveButton("查找", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-
+                showToast(MainActivity.this,"功能待开发！");
             }
         });
         dialog.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -503,6 +509,7 @@ public class MainActivity extends AppCompatActivity
         adialog.show();
     }
 
+    //更新listview
     public void flush(){
         listFile(new File(nowPath),false);
     }
@@ -583,295 +590,163 @@ public class MainActivity extends AppCompatActivity
 }
 }
 
-    class CopyFolderDialog extends AlertDialog{
+    class CopyFolderDialog extends AlertDialog {
 
-    Context context;
-    ProgressBar progressbar;
-    TextView text1;
-    TextView text2;
-    int numFile;
-    int numFloder;
-    int max;
-    int mode;
-    Handler handler=new Handler(){
-
-        @Override
-        public void handleMessage(Message msg)
-        {
-            text1.setText("文件夹:"+numFloder);
-            text2.setText("文件:"+numFile);
-            progressbar.setProgress(numFile+numFloder);
-            super.handleMessage(msg);
-        }
-    };
-
-    public CopyFolderDialog(Context context,int mode){
-    super(context);
-    this.context=context;
-    this.mode=mode;
-    initView();
-}
-
-    private void initView()
-    {
-        View view=LayoutInflater.from(context).inflate(R.layout.copyfolderdialog_view,null);
-        progressbar=(ProgressBar) view.findViewById(R.id.copyfolderdialogviewProgressBar1);
-        text1=(TextView) view.findViewById(R.id.copyfolderdialogviewTextView1);
-        text2=(TextView) view.findViewById(R.id.copyfolderdialogviewTextView2);
-        setView(view);
-        getButton(1);
-        setButton("取消", new DialogInterface.OnClickListener(){
+        Context context;
+        ProgressBar progressbar;
+        TextView text1;
+        TextView text2;
+        int numFile;
+        int numFloder;
+        int max;
+        int mode;
+        Handler handler = new Handler() {
 
             @Override
-            public void onClick(DialogInterface p1, int p2)
-            {
-
+            public void handleMessage(Message msg) {
+                text1.setText("文件夹:" + numFloder);
+                text2.setText("文件:" + numFile);
+                progressbar.setProgress(numFile + numFloder);
+                super.handleMessage(msg);
             }
-        });
-        show();
-        new Thread(new Runnable(){
+        };
 
-            @Override
-            public void run()
-            {
-                //统计剪切板中包含的文件数
-                for(File f:shearPlate){
-                    if(f.isDirectory()){
-                        countFile(f);
-                        numFloder++;
-                    }else{
-                        numFile++;
-                    }
-                    handler.sendEmptyMessage(0);
+        public CopyFolderDialog(Context context, int mode) {
+            super(context);
+            this.context = context;
+            this.mode = mode;
+            initView();
+        }
+
+        private void initView() {
+            View view = LayoutInflater.from(context).inflate(R.layout.copyfolderdialog_view, null);
+            progressbar = (ProgressBar) view.findViewById(R.id.copyfolderdialogviewProgressBar1);
+            text1 = (TextView) view.findViewById(R.id.copyfolderdialogviewTextView1);
+            text2 = (TextView) view.findViewById(R.id.copyfolderdialogviewTextView2);
+            setView(view);
+            getButton(1);
+            setButton("取消", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface p1, int p2) {
+
                 }
-                max=numFile+numFloder;
-                progressbar.setMax(max);//为进度条设置最大值，从此进度条开始递减
-                if(mode==0){//如果mode等于0，那么是复制模式
-                    //统计完成后开始复制，注意这里是从1开始循环的
-                    for(int i=1;i<shearPlate.size();i++){
-                        if(shearPlate.get(i).isDirectory()){
-                            File tem_file=new File(nowPath+"/"+shearPlate.get(i).getName());
-                            nowPath=tem_file.getAbsolutePath();
-                            tem_file.mkdir();
-                            copyFolder(shearPlate.get(i));
-                            nowPath=tem_file.getParent();
-                            numFloder--;
-                        }else{
-                            copyFile(shearPlate.get(i),new File(nowPath+"/"+shearPlate.get(i).getName()));
-                            numFile--;
+            });
+            show();
+            new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    //统计剪切板中包含的文件数
+                    for (File f : shearPlate) {
+                        if (f.isDirectory()) {
+                            countFile(f);
+                            numFloder++;
+                        } else {
+                            numFile++;
                         }
                         handler.sendEmptyMessage(0);
                     }
-                }else{//否则是删除模式
-                    for(File f:shearPlate){
+                    max = numFile + numFloder;
+                    progressbar.setMax(max);//为进度条设置最大值，从此进度条开始递减
+                    if (mode == 0) {//如果mode等于0，那么是复制模式
+                        //统计完成后开始复制，注意这里是从1开始循环的
+                        for (int i = 1; i < shearPlate.size(); i++) {
+                            if (shearPlate.get(i).isDirectory()) {
+                                File tem_file = new File(nowPath + "/" + shearPlate.get(i).getName());
+                                nowPath = tem_file.getAbsolutePath();
+                                tem_file.mkdir();
+                                copyFolder(shearPlate.get(i));
+                                nowPath = tem_file.getParent();
+                                numFloder--;
+                            } else {
+                                copyFile(shearPlate.get(i), new File(nowPath + "/" + shearPlate.get(i).getName()));
+                                numFile--;
+                            }
+                            handler.sendEmptyMessage(0);
+                        }
+                    } else {//否则是删除模式
+                        for (File f : shearPlate) {
+                            delete(f);
+                        }
+                    }
+                    cancel();
+                }
+            }).start();
+        }
+
+        //复制文件夹，file是源，nowPath是目标的路径
+        public void copyFolder(File file) {
+            if (file.isDirectory()) {
+                File[] files = file.listFiles();
+                File tem_file;
+                for (File f : files) {
+                    if (f.isDirectory()) {
+                        tem_file = new File(nowPath + "/" + f.getName());
+                        tem_file.mkdir();
+                        nowPath = tem_file.getAbsolutePath();
+                        copyFolder(f);
+                        numFloder--;
+                        nowPath = new File(nowPath).getParent();
+                    } else {
+                        copyFile(f, new File(nowPath + "/" + f.getName()));
+                        numFile--;
+                    }
+                    handler.sendEmptyMessage(0);
+                }
+            }
+        }
+
+        //复制文件，original是源文件，object是目标文件
+        private long copyFile(File original, File object) {
+            long time = new Date().getTime();
+            int bufferSize = 1024 * 1024 * 2;//2MB
+            try {
+                FileInputStream in = new FileInputStream(original);
+                FileOutputStream out = new FileOutputStream(object);
+                byte[] buffer = new byte[bufferSize];
+                int ins;
+                while ((ins = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, ins);
+                }
+                in.close();
+                out.flush();
+                out.close();
+                return new Date().getTime() - time;
+            } catch (IOException e) {
+            }
+            return 0;
+        }
+
+        //删除文件，无论是文件还是文件夹
+        public void delete(File file) {
+            if (file.isDirectory()) {
+                File[] fs = file.listFiles();
+                for (File f : fs) {
+                    if (!f.delete()) {
                         delete(f);
+                    } else {
+                        numFile--;
+                        handler.sendEmptyMessage(0);
                     }
                 }
-                cancel();
             }
-        }).start();
-    }
+            file.delete();
+            numFloder--;
+            handler.sendEmptyMessage(0);
+        }
 
-    //复制文件夹，file是源，nowPath是目标的路径
-    public void copyFolder(File file){
-        if (file.isDirectory()){
-            File[] files=file.listFiles();
-            File tem_file;
-            for (File f:files){
-                if (f.isDirectory()){
-                    tem_file=new File(nowPath+"/"+f.getName());
-                    tem_file.mkdir();
-                    nowPath=tem_file.getAbsolutePath();
-                    copyFolder(f);
-                    numFloder--;
-                    nowPath=new File(nowPath).getParent();
-                }else{
-                    copyFile(f,new File(nowPath+"/"+f.getName()));
-                    numFile--;
+        public void countFile(File file) {
+            File[] fs = file.listFiles();
+            for (File f : fs) {
+                if (f.isDirectory()) {
+                    numFloder++;
+                    countFile(f);
+                } else {
+                    numFile++;
                 }
                 handler.sendEmptyMessage(0);
             }
         }
     }
-    //复制文件，original是源文件，object是目标文件
-    private long copyFile(File original,File object) {
-    long time=new Date().getTime();
-    int bufferSize=1024*1024*2;//2MB
-    try{
-        FileInputStream in=new FileInputStream(original);
-        FileOutputStream out=new FileOutputStream(object);
-        byte[] buffer=new byte[bufferSize];
-        int ins;
-        while((ins=in.read(buffer))!=-1){
-            out.write(buffer,0,ins);
-        }
-        in.close();
-        out.flush();
-        out.close();
-        return new Date().getTime()-time;
-    }catch(IOException e){}
-    return 0;
 }
-
-    //删除文件，无论是文件还是文件夹
-    public void delete(File file){
-        if(file.isDirectory()){
-            File[] fs=file.listFiles();
-            for(File f:fs){
-                if(!f.delete()){
-                    delete(f);
-                }else{
-                    numFile--;
-                    handler.sendEmptyMessage(0);
-                }
-            }
-        }
-        file.delete();
-        numFloder--;
-        handler.sendEmptyMessage(0);
-    }
-
-    public void countFile(File file){
-        File[] fs=file.listFiles();
-        for(File f:fs){
-        if(f.isDirectory()){
-            numFloder++;
-            countFile(f);
-        }else{
-            numFile++;
-        }
-        handler.sendEmptyMessage(0);
-    }
-    }
-}
-
-    class ListAdapter extends BaseAdapter
-    {
-        LayoutInflater mInflater=LayoutInflater.from(MainActivity.this);
-
-        @Override
-        public int getCount()
-        {
-            // TODO: Implement this method
-            return list.size();
-        }
-
-        @Override
-        public Object getItem(int p1)
-        {
-            // TODO: Implement this method
-            return null;
-        }
-
-        @Override
-        public long getItemId(int p1)
-        {
-            // TODO: Implement this method
-            return 0;
-        }
-
-        @Override
-        public View getView(int p1, View p2, ViewGroup p3)
-        {
-            //p2=findViewById(R.layout.file_item);
-            p2=mInflater.inflate(R.layout.file_item,null);
-            TextView t1 = p2.findViewById(R.id.fileitemTextView1);
-            TextView t2 =p2.findViewById(R.id.file_itemTextView2);
-            ImageView img=p2.findViewById(R.id.file_itemImageView);
-            t1.setTextColor(Color.BLACK);
-            File file=list.get(p1);
-            t1.setText(file.getName());
-            if(file.isFile()){
-                //显示文件的大小
-                long size=file.length();
-                String details;
-                DecimalFormat df=new DecimalFormat("#.00");
-                if(size<1000){//如果文件小于1KB
-                    details=size+"B";
-                }else if(size<1000000){//如果文件小于1MB
-                    details=df.format(((float)size)/1024)+"KB";
-                }else if(size<1000000000){//如果文件小于1GB
-                    details=df.format(((float)size)/1024/1024)+"MB";
-                }else{//如果文件大于1GB
-                    details=df.format(((float)size)/1024/1024/1024)+"GB";
-                }
-                //显示文件可读可写可运行
-                details=details+"				";
-                if(file.canRead()){
-                    details=details+"r";
-                }else{
-                    details=details+"-";
-                }
-                if(file.canWrite()){
-                    details=details+"w";
-                }else{
-                    details=details+"-";
-                }
-                if(file.canExecute()){
-                    details=details+"x";
-                }else{
-                    details=details+"-";
-                }
-                //显示文件的日期
-                details=details+"				";
-                SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd");
-                Date date=new Date(file.lastModified());
-                details=details+sdf.format(date);
-                t2.setText(details);
-
-                //为不同类型的文件设置不同的图标
-                String fileName=file.getName();
-                String prefix=fileName.substring(fileName.lastIndexOf(".")+1);
-                if(prefix.equals("txt")){
-                    img.setImageResource(R.drawable.format_text);
-                }else if(prefix.equals("zip")){
-                    img.setImageResource(R.drawable.format_zip);
-                }else if(prefix.equals("mp3")){
-                    img.setImageResource(R.drawable.format_music);
-                }else if(prefix.equals("apk")){
-                    img.setImageResource(R.drawable.format_app);
-                }else if(prefix.equals("pdf")){
-                    img.setImageResource(R.drawable.format_pdf);
-                }else if(prefix.equals("html")|prefix.equals("mht")){
-                    img.setImageResource(R.drawable.format_html);
-                }else{
-                    img.setImageResource(R.drawable.format_unkown);
-                }
-            }else{
-                img.setImageResource(R.drawable.format_folder_smartlock);
-                t2.setText(file.listFiles().length+"项");
-            }
-
-            if(listview.isItemChecked(p1)) {
-                t1.setBackgroundColor(Color.RED);
-            } else {
-                t1.setBackgroundColor(Color.TRANSPARENT);
-            }
-            return p2;
-        }
-
-    }
-}
-
-/**
- * _ooOoo_
- * o8888888o
- * 88" . "88
- * (| >_< |)
- *  O\ = /O
- * ___/`---'\____
- * .   ' \\| |// `.
- * / \\||| : |||// \
- * / _||||| -:- |||||- \
- * | | \\\ - /// | |
- * | \_| ''\---/'' | |
- * \ .-\__ `-` ___/-. /
- * ___`. .' /--.--\ `. . __
- * ."" '< `.___\_<|>_/___.' >'"".
- * | | : `- \`.;`\ _ /`;.`/ - ` : | |
- * \ \ `-. \_ __\ /__ _/ .-` / /
- * ======`-.____`-.___\_____/___.-`____.-'======
- * `=---='
- *          .............................................
- *           佛曰：bug泛滥，我已瘫痪！
- */

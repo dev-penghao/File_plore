@@ -27,7 +27,7 @@
         android:id="@+id/search_dialog_checkBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="查找文件美容"/>
+        android:text="查找文件内容"/>
 
     <TextView
         android:layout_width="wrap_content"
